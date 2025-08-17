@@ -1,5 +1,5 @@
 import { Layout } from "@/components/Layout";
-import { FavoritesPage } from "@/pages/FavoritesPage";
+import { FavoritesPage } from "@/components/FavoritesPage";
 
 export default function Favorites() {
   return (
@@ -8,3 +8,4 @@ export default function Favorites() {
     </Layout>
   );
 }
+

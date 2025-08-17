@@ -1,5 +1,5 @@
 import { Layout } from "@/components/Layout";
-import { CatalogPage } from "@/pages/CatalogPage";
+import { CatalogPage } from "@/components/CatalogPage";
 
 export default function Catalog() {
   return (
@@ -8,3 +8,4 @@ export default function Catalog() {
     </Layout>
   );
 }
+

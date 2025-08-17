@@ -69,7 +69,7 @@ export function BookReader({ book, onClose, initialPage = 1 }: BookReaderProps) 
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
 
   const readerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Mock book content - in a real app, this would come from the book file
   const mockContent = `

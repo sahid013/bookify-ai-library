@@ -36,7 +36,7 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
     {
       id: '1',
       type: 'assistant',
-      content: "Hi! I'm your AI reading companion. I can help you with book recommendations, discuss themes and characters, analyze text, create study materials, and much more. How can I assist you today?",
+      content: "Hi! I&apos;m your AI reading companion. I can help you with book recommendations, discuss themes and characters, analyze text, create study materials, and much more. How can I assist you today?",
       timestamp: new Date().toISOString()
     }
   ]);
@@ -83,53 +83,71 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
     scrollToBottom();
   }, [messages]);
 
-  const simulateAIResponse = async (userMessage: string): Promise<string> => {
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+  const getAIResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          bookContext: currentBookId ? { 
+            title: 'Current Book', // You can enhance this with actual book data
+            author: 'Unknown Author' 
+          } : undefined,
+          selectedText: selectedText,
+          conversationHistory: messages.slice(-10), // Send last 10 messages for context
+        }),
+      });
 
-    // Simple response logic based on message content
-    const message = userMessage.toLowerCase();
-    
-    if (message.includes('recommend') || message.includes('suggest')) {
-      return "Based on your reading history, I'd recommend checking out 'The Seven Husbands of Evelyn Hugo' by Taylor Jenkins Reid. It's a captivating contemporary fiction with strong character development, similar to some of your previous reads. Would you like more recommendations in this genre or something different?";
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI response');
+      }
+
+      const data = await response.json();
+      
+      // Check if this was a fallback response
+      if (data.fallback) {
+        return data.message + "\n\n💡 *This response is from my built-in knowledge. For more advanced AI assistance, you can add a Google Gemini API key to the environment.*";
+      }
+      
+      return data.message;
+    } catch (error: any) {
+      console.error('AI API Error:', error);
+      
+      // Fallback responses for common errors
+      if (error.message?.includes('API key')) {
+        return "I'm working with my built-in responses right now. I can still help with book recommendations, analysis tips, and literary discussions! To enable advanced AI responses, add a Google Gemini API key. Try the quick actions below or ask me anything about books. 📚";
+      }
+      
+      if (error.message?.includes('Rate limit')) {
+        return "I'm experiencing high demand right now. Please wait a moment and try again. In the meantime, you can explore the quick actions below!";
+      }
+      
+      return "I'm here to help! While I work on processing your request, feel free to try the quick actions below or ask me about book recommendations, character analysis, or literary themes! 📖";
     }
-    
-    if (message.includes('theme') || message.includes('meaning')) {
-      return "Great question! The main themes in this work include human resilience, the complexity of relationships, and the search for identity. These themes are woven throughout the narrative through the protagonist's journey and interactions with other characters. Which specific theme would you like me to explore in more depth?";
-    }
-    
-    if (message.includes('character') || message.includes('protagonist')) {
-      return "The character development in this book is quite nuanced. The protagonist evolves from someone who is initially reactive to circumstances to someone who takes control of their destiny. Their relationships with supporting characters reveal different facets of their personality. What aspects of character development are you most interested in discussing?";
-    }
-    
-    if (message.includes('quote') || message.includes('passage')) {
-      return "Here's a powerful quote from the book: 'The only way to make sense out of change is to plunge into it, move with it, and join the dance.' This passage encapsulates the book's central message about embracing life's uncertainties. Would you like me to find more quotes with similar themes?";
-    }
-    
-    if (message.includes('summary') || message.includes('summarize')) {
-      return "This chapter focuses on a pivotal moment in the story where the main character faces a crucial decision. The author uses vivid imagery and internal monologue to show the character's inner conflict. Key events include the confrontation with the antagonist and the revelation that changes everything. Would you like me to elaborate on any specific part?";
-    }
-    
-    return "That's an interesting question! I'd be happy to help you explore that topic further. Could you provide a bit more context about what specifically you'd like to know? I can offer insights about the book's themes, characters, writing style, historical context, or anything else you're curious about.";
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+  const sendMessage = async (messageText?: string) => {
+    const textToSend = messageText || newMessage.trim();
+    if (!textToSend) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      content: newMessage,
+      content: textToSend,
       timestamp: new Date().toISOString(),
       context: currentBookId ? { bookId: currentBookId, selectedText } : undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
+    if (!messageText) setNewMessage(''); // Only clear if it's from the input
     setIsTyping(true);
 
     try {
-      const aiResponse = await simulateAIResponse(newMessage);
+      const aiResponse = await getAIResponse(textToSend);
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -153,9 +171,41 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
     }
   };
 
-  const handleQuickAction = (actionText: string) => {
-    setNewMessage(actionText);
-    sendMessage();
+  const handleQuickAction = async (actionText: string) => {
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: actionText,
+      timestamp: new Date().toISOString(),
+      context: currentBookId ? { bookId: currentBookId, selectedText } : undefined
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
+
+    try {
+      const aiResponse = await getAIResponse(actionText);
+      
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: aiResponse,
+        timestamp: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: "I'm sorry, I encountered an error. Please try again.",
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const clearChat = () => {
@@ -182,8 +232,8 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between py-3">
+    <Card className="fixed bottom-4 right-4 w-96 max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-2rem)] shadow-2xl z-50 flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between py-3 flex-shrink-0 border-b">
         <CardTitle className="flex items-center gap-2 text-base">
           <Bot className="h-5 w-5" />
           AI Reading Assistant
@@ -199,14 +249,14 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
         </div>
       </CardHeader>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="mx-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+        <TabsList className="mx-4 mb-2 flex-shrink-0">
           <TabsTrigger value="chat" className="flex-1">Chat</TabsTrigger>
           <TabsTrigger value="actions" className="flex-1">Quick Actions</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="chat" className="flex-1 flex flex-col mt-0">
-          <ScrollArea className="flex-1 px-4">
+        <TabsContent value="chat" className="flex-1 flex flex-col mt-0 min-h-0">
+          <ScrollArea className="flex-1 px-4 min-h-0">
             <div className="space-y-4 py-4">
               {messages.map((message) => (
                 <div
@@ -214,7 +264,7 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
                   className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.type === 'assistant' && (
-                    <Avatar className="h-8 w-8 mt-1">
+                    <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         <Bot className="h-4 w-4" />
                       </AvatarFallback>
@@ -222,23 +272,25 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
                   )}
                   
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm break-words ${
                       message.type === 'user'
                         ? 'bg-primary text-primary-foreground ml-auto'
                         : 'bg-muted'
                     }`}
                   >
-                    {message.content}
+                    <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere">
+                      {message.content}
+                    </div>
                     {message.context?.selectedText && (
                       <div className="mt-2 p-2 bg-background/50 rounded border-l-2 border-primary">
                         <p className="text-xs text-muted-foreground">Selected text:</p>
-                        <p className="text-xs italic">"{message.context.selectedText}"</p>
+                        <p className="text-xs italic break-words">"{message.context.selectedText}"</p>
                       </div>
                     )}
                   </div>
                   
                   {message.type === 'user' && (
-                    <Avatar className="h-8 w-8 mt-1">
+                    <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
                       <AvatarFallback>
                         <User className="h-4 w-4" />
                       </AvatarFallback>
@@ -249,7 +301,7 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
               
               {isTyping && (
                 <div className="flex gap-3 justify-start">
-                  <Avatar className="h-8 w-8 mt-1">
+                  <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       <Bot className="h-4 w-4" />
                     </AvatarFallback>
@@ -269,8 +321,8 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="actions" className="flex-1 mt-0">
-          <ScrollArea className="flex-1 px-4">
+        <TabsContent value="actions" className="flex-1 mt-0 min-h-0 flex flex-col">
+          <ScrollArea className="flex-1 px-4 min-h-0">
             <div className="space-y-6 py-4">
               {quickActions.map((category) => (
                 <div key={category.category} className="space-y-3">
@@ -283,11 +335,11 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
                         key={action.text}
                         variant="outline"
                         size="sm"
-                        className="justify-start gap-2 h-auto py-2"
+                        className="justify-start gap-2 h-auto py-2 text-left"
                         onClick={() => handleQuickAction(action.text)}
                       >
-                        <action.icon className="h-4 w-4" />
-                        <span className="text-left">{action.text}</span>
+                        <action.icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-left break-words">{action.text}</span>
                       </Button>
                     ))}
                   </div>
@@ -298,19 +350,21 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
         </TabsContent>
       </Tabs>
 
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-2 flex-shrink-0 border-t bg-background/50">
         <div className="flex gap-2 w-full">
           <Input
             placeholder="Ask me anything about books..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
             disabled={isTyping}
+            className="min-w-0 flex-1"
           />
           <Button 
             onClick={sendMessage} 
             disabled={!newMessage.trim() || isTyping}
             size="icon"
+            className="flex-shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>

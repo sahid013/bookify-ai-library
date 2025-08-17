@@ -192,3 +192,4 @@ export interface SearchResult {
   page: number;
   hasNextPage: boolean;
 }
+

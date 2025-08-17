@@ -173,3 +173,4 @@ export const mockReadingStats: ReadingStats = {
     timeSpent: 8640
   }
 };
+
