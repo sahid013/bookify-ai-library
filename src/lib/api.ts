@@ -55,7 +55,7 @@ export class BookstoreAPI {
     return mockBooks.find(book => book.id === id) || null;
   }
 
-  static async searchBooks(query: string, filters?: Partial<FilterOptions>): Promise<SearchResult> {
+  static async searchBooks(query: string, filters?: Partial<FilterOptions>, page: number = 1, limit: number = 12): Promise<SearchResult> {
     await delay();
     let filteredBooks = mockBooks;
 
@@ -134,11 +134,16 @@ export class BookstoreAPI {
       });
     }
 
+    // Apply pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedBooks = filteredBooks.slice(startIndex, endIndex);
+
     return {
-      books: filteredBooks,
+      books: paginatedBooks,
       total: filteredBooks.length,
-      page: 1,
-      hasNextPage: false
+      page,
+      hasNextPage: endIndex < filteredBooks.length
     };
   }
 

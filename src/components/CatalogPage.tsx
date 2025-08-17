@@ -50,7 +50,7 @@ export function CatalogPage() {
     try {
       let result
       if (search) {
-        result = await BookstoreAPI.searchBooks(search, filters, page)
+        result = await BookstoreAPI.searchBooks(search, filters, page, 12)
       } else {
         result = await BookstoreAPI.getBooks(page, 12)
       }
@@ -161,7 +161,7 @@ export function CatalogPage() {
             {/* Sort Controls */}
             <Select
               value={filters.sortBy}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value as any }))}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value as 'title' | 'author' | 'rating' | 'published' | 'popularity' }))}
             >
               <SelectTrigger className="w-40">
                 <SelectValue />

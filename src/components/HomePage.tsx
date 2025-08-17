@@ -222,7 +222,7 @@ export function HomePage() {
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-6">Experience Reading Like Never Before</h2>
             <p className="text-xl mb-8 text-blue-100">
-              Our AI companion doesn't just recommend books – it transforms how you read, 
+              Our AI companion doesn&apos;t just recommend books – it transforms how you read, 
               understand, and engage with literature.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

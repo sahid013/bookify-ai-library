@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   MessageCircle, 
@@ -22,7 +22,7 @@ import {
   RotateCcw,
   Sparkles
 } from 'lucide-react';
-import { ChatMessage, ChatSession } from '@/types';
+import { ChatMessage } from '@/types';
 
 interface ChatBotProps {
   isOpen: boolean;
@@ -114,15 +114,16 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
       }
       
       return data.message;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AI API Error:', error);
       
       // Fallback responses for common errors
-      if (error.message?.includes('API key')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('API key')) {
         return "I'm working with my built-in responses right now. I can still help with book recommendations, analysis tips, and literary discussions! To enable advanced AI responses, add a Google Gemini API key. Try the quick actions below or ask me anything about books. 📚";
       }
       
-      if (error.message?.includes('Rate limit')) {
+      if (errorMessage?.includes('Rate limit')) {
         return "I'm experiencing high demand right now. Please wait a moment and try again. In the meantime, you can explore the quick actions below!";
       }
       
@@ -284,7 +285,7 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
                     {message.context?.selectedText && (
                       <div className="mt-2 p-2 bg-background/50 rounded border-l-2 border-primary">
                         <p className="text-xs text-muted-foreground">Selected text:</p>
-                        <p className="text-xs italic break-words">"{message.context.selectedText}"</p>
+                        <p className="text-xs italic break-words">&quot;{message.context.selectedText}&quot;</p>
                       </div>
                     )}
                   </div>
@@ -361,7 +362,7 @@ export function ChatBot({ isOpen, onToggle, currentBookId, selectedText }: ChatB
             className="min-w-0 flex-1"
           />
           <Button 
-            onClick={sendMessage} 
+            onClick={() => sendMessage()} 
             disabled={!newMessage.trim() || isTyping}
             size="icon"
             className="flex-shrink-0"

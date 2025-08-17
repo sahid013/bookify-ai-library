@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
+
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,12 +16,7 @@ import {
   Settings,
   Bookmark,
   BookmarkCheck,
-  Menu,
-  SkipBack,
-  SkipForward,
-  Palette,
-  Type,
-  AlignLeft,
+
   Sun,
   Moon,
   Monitor,
@@ -234,7 +229,7 @@ export function BookReader({ book, onClose, initialPage = 1 }: BookReaderProps) 
 
 
 
-  const updateSettings = (key: keyof ReaderSettings, value: any) => {
+  const updateSettings = (key: keyof ReaderSettings, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -255,7 +250,7 @@ export function BookReader({ book, onClose, initialPage = 1 }: BookReaderProps) 
                 settings.fontFamily === 'sans-serif' ? 'Arial, sans-serif' : 
                 'Courier, monospace',
     lineHeight: settings.lineHeight,
-    textAlign: settings.textAlign as any,
+    textAlign: settings.textAlign as 'left' | 'justify',
     padding: `${settings.margin}px`,
     ...getBackgroundStyle()
   });
